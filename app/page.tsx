@@ -1,5 +1,6 @@
 import QRCard from "@/components/QRCard";
 import { pages } from "@/lib/pages";
+import { asset } from "@/lib/basePath";
 
 export default function Home() {
   return (
@@ -14,7 +15,7 @@ export default function Home() {
         {pages.map((p) => (
           <div key={p.slug} className="qr-item">
             <QRCard slug={p.slug} title={p.title} />
-            <a className="editor-link" href={`/editor/${p.slug}`}>
+            <a className="editor-link" href={asset(`/editor/${p.slug}`)}>
               ✎ szerkesztő
             </a>
           </div>

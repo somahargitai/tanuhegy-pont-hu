@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { asset } from "@/lib/basePath";
 
 export default function QRCard({
   slug,
@@ -14,7 +15,7 @@ export default function QRCard({
   const [dataUrl, setDataUrl] = useState("");
 
   useEffect(() => {
-    const full = `${window.location.origin}/${slug}`;
+    const full = `${window.location.origin}${asset(`/${slug}`)}`;
     setHref(full);
     QRCode.toDataURL(full, {
       margin: 1,
@@ -26,7 +27,7 @@ export default function QRCard({
   }, [slug]);
 
   return (
-    <a className="qr-card" href={`/${slug}`}>
+    <a className="qr-card" href={asset(`/${slug}`)}>
       <div className="qr-imgwrap">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -37,7 +38,7 @@ export default function QRCard({
       </div>
       <div className="qr-meta">
         <div className="qr-title">{title}</div>
-        <div className="qr-url">{href || `/${slug}`}</div>
+        <div className="qr-url">{href || asset(`/${slug}`)}</div>
       </div>
     </a>
   );

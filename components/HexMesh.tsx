@@ -10,6 +10,7 @@ import {
   stageTransform,
   type StageTransform,
 } from "@/lib/stage";
+import { asset } from "@/lib/basePath";
 
 type PenColor = "black" | "white" | "none";
 
@@ -237,7 +238,7 @@ export default function HexMesh({
     const img = new Image();
     let imgReady = false;
     img.onload = () => (imgReady = true);
-    img.src = page.image;
+    img.src = asset(page.image);
 
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import HexMesh from "@/components/HexMesh";
 import type { PageConfig, TextBlock } from "@/lib/pages";
 import { SLIDE_H, SLIDE_W, stageTransform } from "@/lib/stage";
+import { asset } from "@/lib/basePath";
 
 // Arial metrikák – ezekből számoljuk vissza a tervben megadott alapvonalat
 // (baseline) a CSS blokk tetejére.
@@ -194,7 +195,7 @@ export default function SlideDeck({
           <img
             key={t.src}
             className="stage-title"
-            src={t.src}
+            src={asset(t.src)}
             alt=""
             aria-hidden
             style={{ left: t.x, top: t.y, width: t.w, height: t.h }}
