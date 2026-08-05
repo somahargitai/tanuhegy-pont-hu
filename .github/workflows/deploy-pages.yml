@@ -38,8 +38,9 @@ jobs:
 
       - name: Statikus export
         env:
-          # Projekt-oldalnál ez "/q-banya". A next.config.mjs és a
-          # lib/basePath.ts ugyanúgy normalizálja (a puszta "/" üresre).
+          # Egyéni domainnél (tanuhegy.hu) ez "/", amit a next.config.mjs és a
+          # lib/basePath.ts üresre normalizál – tehát a base path magától eltűnik.
+          # Projekt-oldalnál (github.io/<repo>/) viszont "/<repo>" lenne.
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: npm run build
 

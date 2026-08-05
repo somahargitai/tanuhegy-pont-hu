@@ -12,7 +12,8 @@
  */
 
 /**
- * "/q-banya/", "q-banya", "/" stb. -> "/q-banya" ill. "".
+ * "/tanuhegy-pont-hu/", "tanuhegy-pont-hu" -> "/tanuhegy-pont-hu"; "/" és "" -> "".
+ * Egyéni domainnél (tanuhegy.hu) a Pages a gyökérről szolgál ki, ezért ott üres.
  * FONTOS: a `next.config.mjs` ugyanezt a normalizálást végzi – ha itt
  * változtatsz, ott is át kell írni.
  */

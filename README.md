@@ -1,4 +1,4 @@
-# Anna – hatszög / foto / QR
+# tanuhegy.hu
 
 Mobilböngészőben futó webapp. Több útvonal, mindegyikre egy QR kód mutat.
 Minden oldalon egy szabálytalan, animált **hatszög-térháló** takar egy
@@ -9,8 +9,8 @@ látszanak a kép részletei. A hatszögek csúcsai finoman lebegnek.
 
 | Ág | Hova megy | Cím |
 |---|---|---|
-| `main` | **GitHub Pages – éles** | https://somahargitai.github.io/q-banya/ |
-| `dev` | **Vercel – pre-production** | https://anna-hatszog-foto-qr.vercel.app |
+| `main` | **GitHub Pages – éles** | https://tanuhegy.hu |
+| `dev` | **Vercel – pre-production** | https://tanuhegy-pont-hu.vercel.app |
 
 Mindkettő automatikus: `main`-re pusholva a
 `.github/workflows/deploy-pages.yml` buildel és deployol (~45 mp), `dev`-re
@@ -20,11 +20,14 @@ pusholva a Vercel Git-integrációja teszi ugyanezt. A szokásos menet tehát:
 ### Alap-útvonal (base path)
 
 Az oldal **statikusan exportálódik** (`output: "export"`), és ugyanaz a build fut
-ki mindkét helyre. A különbség csak annyi, hogy a GitHub Pages projekt-oldal egy
-alkönyvtárban él (`/q-banya`), a Vercel pedig a domain gyökerén.
+ki mindkét helyre – és mivel a Pages egyéni domainen (`tanuhegy.hu`) a **gyökérről**
+szolgál ki, mindkét helyen base path nélkül.
 
 Ezt a `NEXT_PUBLIC_BASE_PATH` környezeti változó intézi: a workflow az
-`actions/configure-pages` kimenetéből tölti fel, Vercelen és helyben üres.
+`actions/configure-pages` kimenetéből tölti fel (egyéni domainnél ez `/`, amit
+üresre normalizálunk), Vercelen és helyben pedig eleve üres. Ha valaha
+visszaállnánk a `somahargitai.github.io/<repo>/` címre, magától megjelenne az
+előtag – nincs mit átírni.
 
 **Ha új képet vagy SVG-t teszel be, `asset()`-tel hivatkozz rá**
 (`lib/basePath.ts`). A Next csak a `<Link>` és `next/image` útvonalait igazítja a
@@ -44,12 +47,13 @@ A kezdőlapon lévő QR kódok ilyenkor is a helyes címre mutatnak.
 Statikus build (ugyanaz, ami élesbe megy):
 
 ```bash
-npm run build                              # -> out/
-NEXT_PUBLIC_BASE_PATH=/q-banya npm run build   # a Pages-változat
+npm run build                 # -> out/
+cd out && python3 -m http.server 8080
 
-# kipróbálás alkönyvtárból, ahogy a Pages kiszolgálja:
-mkdir -p /tmp/site && cp -R out /tmp/site/q-banya
-cd /tmp/site && python3 -m http.server 8080   # http://localhost:8080/q-banya/
+# ha valaha alkönyvtárba kerülne, így tesztelhető:
+NEXT_PUBLIC_BASE_PATH=/valami npm run build
+mkdir -p /tmp/site && cp -R out /tmp/site/valami
+cd /tmp/site && python3 -m http.server 8080   # http://localhost:8080/valami/
 ```
 
 ## Oldalak felvétele / hangolása
