@@ -130,8 +130,12 @@ export default function HexMesh({
 
   // Élőben állítható paraméterek (a szerkesztő csúszkái ezeket mozgatják).
   const hexRadiusRef = useRef(page.hexRadius ?? 96);
-  const rebuildRef = useRef<(r: number) => void>(() => {});
+  const rebuildRef = useRef<() => void>(() => {});
   const [hexRadius, setHexRadius] = useState(page.hexRadius ?? 96);
+  const spikeCountRef = useRef(page.spikes?.count ?? 0);
+  const spikeWidthRef = useRef(page.spikes?.width ?? 0.12);
+  const [spikeCount, setSpikeCount] = useState(page.spikes?.count ?? 0);
+  const [spikeWidth, setSpikeWidth] = useState(page.spikes?.width ?? 0.12);
   const lineOpacityRef = useRef(page.lineOpacity ?? 0.42);
   const lineColorRef = useRef<PenColor>(page.lineColor ?? "white");
   const borderOpacityRef = useRef(page.borderOpacity ?? 0.85);
@@ -155,8 +159,10 @@ export default function HexMesh({
 
   useEffect(() => {
     hexRadiusRef.current = hexRadius;
-    rebuildRef.current(hexRadius);
-  }, [hexRadius]);
+    spikeCountRef.current = spikeCount;
+    spikeWidthRef.current = spikeWidth;
+    rebuildRef.current();
+  }, [hexRadius, spikeCount, spikeWidth]);
 
   useEffect(() => {
     lineOpacityRef.current = lineOpacity;
@@ -194,7 +200,8 @@ export default function HexMesh({
 
     // A hálót fix tervezési méretben építjük; a csempeméret (R) állításakor
     // újraépítjük, de a rAF ciklus fut tovább (nem akad meg az animáció).
-    function buildAt(R: number) {
+    function buildAt() {
+      const R = hexRadiusRef.current;
       const mesh = buildMesh({
         width: DESIGN_W,
         height: DESIGN_H,
@@ -202,6 +209,11 @@ export default function HexMesh({
         seed: page.seed ?? 1,
         jitter: page.jitter,
         reveal: page.reveal,
+        spikes: {
+          ...page.spikes,
+          count: spikeCountRef.current,
+          width: spikeWidthRef.current,
+        },
         // A rács is túlfut, hogy a függőleges ráhagyást kitöltse.
         pad: Math.max(R * 1.5, BLEED_Y + R),
       });
@@ -214,7 +226,7 @@ export default function HexMesh({
       if (editable) setSelected([...initial].sort((a, b) => a - b));
     }
     rebuildRef.current = buildAt;
-    buildAt(hexRadiusRef.current);
+    buildAt();
 
     let raf = 0;
     let startTs = 0;
@@ -395,6 +407,7 @@ export default function HexMesh({
   const copyIndices = useCallback(() => {
     const text =
       `hexRadius: ${hexRadius},\n` +
+      `spikes: { count: ${spikeCount}, width: ${spikeWidth} },\n` +
       `reveal: { indices: [${selected.join(", ")}] },\n` +
       `lineOpacity: ${lineOpacity}, lineColor: "${lineColor}",\n` +
       `borderOpacity: ${borderOpacity}, borderColor: "${borderColor}",\n` +
@@ -405,6 +418,8 @@ export default function HexMesh({
     );
   }, [
     hexRadius,
+    spikeCount,
+    spikeWidth,
     selected,
     lineOpacity,
     lineColor,
@@ -443,6 +458,43 @@ export default function HexMesh({
               }}
             />
           </label>
+
+          <div className="editor-group">
+            <label className="editor-slider">
+              <span>
+                Tűk (hegyesszögű háromszögek)
+                <b>{spikeCount} db</b>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={12}
+                step={1}
+                value={spikeCount}
+                onChange={(e) => {
+                  setSpikeCount(Number(e.target.value));
+                  setCopied(false);
+                }}
+              />
+            </label>
+            <label className="editor-slider">
+              <span>
+                Tű rövid oldala
+                <b>{spikeWidth.toFixed(3)}</b>
+              </span>
+              <input
+                type="range"
+                min={0.03}
+                max={0.35}
+                step={0.005}
+                value={spikeWidth}
+                onChange={(e) => {
+                  setSpikeWidth(Number(e.target.value));
+                  setCopied(false);
+                }}
+              />
+            </label>
+          </div>
 
           <div className="editor-group">
             <label className="editor-slider">
@@ -518,6 +570,8 @@ export default function HexMesh({
 
           <code className="editor-code">
             hexRadius: {hexRadius},
+            {"\n"}spikes: {"{"} count: {spikeCount}, width: {spikeWidth}{" "}
+            {"}"},
             {"\n"}reveal: {"{"} indices: [{selected.join(", ")}] {"}"},
             {"\n"}lineOpacity: {lineOpacity}, lineColor: &quot;{lineColor}&quot;,
             {"\n"}borderOpacity: {borderOpacity}, borderColor: &quot;

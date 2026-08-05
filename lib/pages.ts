@@ -1,4 +1,4 @@
-import type { RevealSpec } from "./hexMesh";
+import type { RevealSpec, SpikeSpec } from "./hexMesh";
 
 /** Egy szövegblokk a slide 1080×1920-as terében. */
 export type TextBlock = {
@@ -61,6 +61,8 @@ export type PageConfig = {
   jitter?: number;
   /** Melyik hatszögek átlátszóak (foltok vagy pontos indexek). */
   reveal?: RevealSpec;
+  /** Vékony, hosszú háromszögek („tüskék") beszúrása a rácsba. */
+  spikes?: SpikeSpec;
   /** A rácsvonalak átlátszatlansága (0..1). Alap: 0.42. */
   lineOpacity?: number;
   /** A rácsvonalak színe ("none" = nem látszik). Alap: "white". */
@@ -183,6 +185,9 @@ export const pages: PageConfig[] = [
         { x: 2420, y: 1180, r: 380 },
       ],
     },
+    // Néhány rácspont helyére rövid szakasz kerül, és onnan lóg le egy
+    // közel függőleges, hegyesszögű tű.
+    spikes: { count: 3, width: 0.2 },
   },
   {
     slug: "banya-2",
