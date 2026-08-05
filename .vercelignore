@@ -1,0 +1,17 @@
+# Tervezési forrásfájlok – nem kellenek a futó oldalhoz (~37 MB)
+/MUNKAFÁJLOK
+
+# A gyökérben heverő eredeti fájlok. FONTOS: a kezdő "/" nélkül a minta minden
+# szinten illeszkedne, és a public/ alatti (élesben használt!) párjukat is
+# kizárná.
+/qbanya1.jpg
+/qbanya2.jpg
+/bazalt_text_1.svg
+
+# Build- és eszközkönyvtárak
+/.next
+/node_modules
+/out
+/.claude
+*.tsbuildinfo
+.DS_Store
