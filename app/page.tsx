@@ -1,7 +1,8 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import ComingSoon from "@/components/ComingSoon";
 import { pages } from "@/lib/pages";
-import { asset } from "@/lib/basePath";
+import { asset, COMING_SOON } from "@/lib/basePath";
 
 /*
  * VÁZ – minden szöveg placeholder. A szerkezet a végleges, a tartalom nem.
@@ -24,6 +25,9 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  // Élesben (GitHub Pages) egyelőre csak a kép megy ki – lásd COMING_SOON.
+  if (COMING_SOON) return <ComingSoon />;
+
   return (
     <>
       <SiteHeader current="/" />

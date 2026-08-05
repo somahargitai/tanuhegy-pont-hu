@@ -38,10 +38,27 @@ jobs:
 
       - name: Statikus export
         env:
+          # Amíg a projekt nem kész, élesben CSAK a landing (a kép) menjen ki.
+          # Kikapcsolás: töröld ezt a sort és az alábbi "Csak a landing" lépést.
+          NEXT_PUBLIC_COMING_SOON: "1"
           # Projekt-oldalnál ez "/q-banya". A next.config.mjs és a
           # lib/basePath.ts ugyanúgy normalizálja (a puszta "/" üresre).
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: npm run build
+
+      # A statikus exportnál a többi útvonal is legenerálódik; élesben most
+      # nem akarjuk kitenni őket. A dev/Vercel buildet ez nem érinti.
+      - name: Csak a landing maradjon
+        run: |
+          cd out
+          find . -maxdepth 1 -mindepth 1 \
+            ! -name 'index.html' \
+            ! -name '404.html' \
+            ! -name '_next' \
+            ! -name '.nojekyll' \
+            ! -name 'bazalt-06.jpg' \
+            -exec rm -rf {} +
+          echo "Kimenet:"; ls -a
 
       - uses: actions/upload-pages-artifact@v3
         with:

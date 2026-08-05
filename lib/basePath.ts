@@ -24,6 +24,16 @@ export function normalizeBasePath(raw?: string): string {
 
 export const BASE_PATH = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
 
+/**
+ * "Hamarosan" mód: az éles oldalon egyelőre CSAK a kép látszik.
+ *
+ * Build időben kapcsolható, nem ágfüggő – így a `main` és a `dev` kódja
+ * ugyanaz maradhat, és a merge-ök nem ütköznek. A GitHub Pages workflow
+ * bekapcsolja, a Vercel (dev) build nem, ezért ott az egész oldal látszik.
+ * Ha kész a projekt: vedd ki a workflow-ból a `NEXT_PUBLIC_COMING_SOON`-t.
+ */
+export const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "1";
+
 /** Gyökérből induló útvonal elé teszi a base path-t. Relatív utat nem bánt. */
 export function asset(path: string): string {
   return path.startsWith("/") ? `${BASE_PATH}${path}` : path;

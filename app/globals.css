@@ -214,6 +214,25 @@ body {
   transform: scale(0.98);
 }
 
+/* --- "Hamarosan": csak a kép, középen, fekete háttéren --- */
+.coming-soon {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  padding: clamp(16px, 4vw, 48px);
+}
+
+.coming-soon img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 /* ==========================================================================
    Tartalmi oldalak (landing, projektleírás, galéria)
    Mobil-először; a méretek clamp()-pel folyamatosan nőnek, így nincs szükség
