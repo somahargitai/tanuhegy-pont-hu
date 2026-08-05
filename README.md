@@ -5,6 +5,32 @@ Minden oldalon egy szabálytalan, animált **hatszög-térháló** takar egy
 **fekete-fehér** fotót – csak az előre kijelölt, átlátszó hatszögeken keresztül
 látszanak a kép részletei. A hatszögek csúcsai finoman lebegnek.
 
+## Deploy: két ág, két környezet
+
+| Ág | Hova megy | Cím |
+|---|---|---|
+| `main` | **GitHub Pages – éles** | https://somahargitai.github.io/q-banya/ |
+| `dev` | **Vercel – pre-production** | https://anna-hatszog-foto-qr.vercel.app |
+
+Mindkettő automatikus: `main`-re pusholva a
+`.github/workflows/deploy-pages.yml` buildel és deployol (~45 mp), `dev`-re
+pusholva a Vercel Git-integrációja teszi ugyanezt. A szokásos menet tehát:
+`dev`-en dolgozol → megnézed Vercelen → merge `main`-be → élesedik.
+
+### Alap-útvonal (base path)
+
+Az oldal **statikusan exportálódik** (`output: "export"`), és ugyanaz a build fut
+ki mindkét helyre. A különbség csak annyi, hogy a GitHub Pages projekt-oldal egy
+alkönyvtárban él (`/q-banya`), a Vercel pedig a domain gyökerén.
+
+Ezt a `NEXT_PUBLIC_BASE_PATH` környezeti változó intézi: a workflow az
+`actions/configure-pages` kimenetéből tölti fel, Vercelen és helyben üres.
+
+**Ha új képet vagy SVG-t teszel be, `asset()`-tel hivatkozz rá**
+(`lib/basePath.ts`). A Next csak a `<Link>` és `next/image` útvonalait igazítja a
+base path-hoz — a nyers `<img src>`-eket és a canvasba töltött képeket nem, azok
+előtag nélkül 404-esek lennének Pages-en.
+
 ## Futtatás
 
 ```bash
@@ -15,10 +41,15 @@ npm run dev      # http://localhost:3000
 Telefonon (azonos WiFi-n): nyisd meg a gép IP-jét, pl. `http://192.168.1.192:3000`.
 A kezdőlapon lévő QR kódok ilyenkor is a helyes címre mutatnak.
 
-Éles build:
+Statikus build (ugyanaz, ami élesbe megy):
 
 ```bash
-npm run build && npm run start
+npm run build                              # -> out/
+NEXT_PUBLIC_BASE_PATH=/q-banya npm run build   # a Pages-változat
+
+# kipróbálás alkönyvtárból, ahogy a Pages kiszolgálja:
+mkdir -p /tmp/site && cp -R out /tmp/site/q-banya
+cd /tmp/site && python3 -m http.server 8080   # http://localhost:8080/q-banya/
 ```
 
 ## Oldalak felvétele / hangolása
@@ -54,3 +85,6 @@ minden telefonon ugyanaz a cella lesz.
 - `components/HexMesh.tsx` – canvas rajzolás + szerkesztő mód.
 - `components/QRCard.tsx` – QR kód generálás a kezdőlapon.
 - `lib/pages.ts` – az oldalak konfigja.
+- `lib/stage.ts` – a slide-ok közös geometriája (a swipe-hoz).
+- `components/SlideDeck.tsx` – swipe + a canvasszal együtt mozgó felirat/szöveg réteg.
+- `lib/basePath.ts` – `asset()` a GitHub Pages alkönyvtárhoz.
