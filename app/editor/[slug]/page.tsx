@@ -19,7 +19,7 @@ export default async function EditorPage({
   return (
     <>
       <SlideDeck page={page} editable />
-      <a className="mesh-back" href={asset("/")}>
+      <a className="mesh-back" href={asset("/galeria")}>
         ← galéria
       </a>
     </>

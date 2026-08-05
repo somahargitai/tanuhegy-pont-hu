@@ -19,7 +19,7 @@ export default async function MeshPage({
   return (
     <>
       <SlideDeck page={page} />
-      <a className="mesh-back" href={asset("/")}>
+      <a className="mesh-back" href={asset("/galeria")}>
         ← galéria
       </a>
     </>
