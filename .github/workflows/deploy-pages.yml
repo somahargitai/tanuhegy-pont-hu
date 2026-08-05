@@ -24,15 +24,14 @@ jobs:
 
       - name: Pages beállítása
         id: pages
+        # A Pages maga egyszer, kézzel lett bekapcsolva (forrás: GitHub
+        # Actions). Az `enablement: true` itt NEM működik: a GITHUB_TOKEN nem
+        # hozhat létre Pages site-ot ("Resource not accessible by integration").
         uses: actions/configure-pages@v5
-        with:
-          # Az első futáskor magától bekapcsolja a Pages-t "GitHub Actions"
-          # forrással, hogy ne kelljen kézzel is beállítani.
-          enablement: true
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
