@@ -2,29 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildMesh, vertexAt, type Mesh } from "@/lib/hexMesh";
-import type { PageConfig } from "@/lib/pages";
+import type { OverlayRect, PageConfig } from "@/lib/pages";
+import {
+  BLEED_Y,
+  SLIDE_H,
+  SLIDE_W,
+  stageTransform,
+  type StageTransform,
+} from "@/lib/stage";
 
-// Fix tervezési vászon. A hálót ebben építjük, majd "cover" módon a
-// képernyőre skálázzuk – így a hatszögek indexei eszközfüggetlenek.
-const DESIGN_W = 1080;
-const DESIGN_H = 1920;
-
-type Transform = { scale: number; offX: number; offY: number };
 type PenColor = "black" | "white" | "none";
 
 function stroke(alpha: number, color: PenColor): string | null {
   if (color === "none" || alpha <= 0) return null;
   const rgb = color === "white" ? "255,255,255" : "0,0,0";
   return `rgba(${rgb},${alpha.toFixed(3)})`;
-}
-
-function coverTransform(cssW: number, cssH: number): Transform {
-  const scale = Math.max(cssW / DESIGN_W, cssH / DESIGN_H);
-  return {
-    scale,
-    offX: (cssW - DESIGN_W * scale) / 2,
-    offY: (cssH - DESIGN_H * scale) / 2,
-  };
 }
 
 const COLOR_OPTIONS: { v: PenColor; label: string }[] = [
@@ -70,16 +62,68 @@ function pointInPolygon(pts: { x: number; y: number }[], x: number, y: number) {
   return inside;
 }
 
+/**
+ * A maszk kitöltése. Ha vannak eltérő színű területek, azokból egy
+ * offscreen canvas-alapú mintát készítünk, így egyetlen evenodd fill-lel
+ * megy ki az egész (a kilyukasztott hatszögek helye marad átlátszó).
+ */
+const PAD = BLEED_Y + 200;
+function buildOverlayFill(
+  ctx: CanvasRenderingContext2D,
+  base: string,
+  rects: OverlayRect[] | undefined,
+  w: number,
+  h: number
+): string | CanvasPattern {
+  if (!rects || rects.length === 0) return base;
+  try {
+    const s = 0.5;
+    const off = document.createElement("canvas");
+    off.width = Math.round((w + 2 * PAD) * s);
+    off.height = Math.round((h + 2 * PAD) * s);
+    const octx = off.getContext("2d");
+    if (!octx) return base;
+    octx.fillStyle = base;
+    octx.fillRect(0, 0, off.width, off.height);
+    for (const r of rects) {
+      // A vászon szélét érintő területek túlfutnak, hogy a 9:16-nál nyúltabb
+      // képernyőkön se maradjon üres sáv fent/lent.
+      const top = r.y <= 0 ? -PAD : r.y;
+      const bottom = r.y + r.h >= h ? h + PAD : r.y + r.h;
+      octx.fillStyle = r.color;
+      octx.fillRect((r.x + PAD) * s, (top + PAD) * s, r.w * s, (bottom - top) * s);
+    }
+    const pat = ctx.createPattern(off, "no-repeat");
+    if (!pat || typeof pat.setTransform !== "function") return base;
+    pat.setTransform(new DOMMatrix().translateSelf(-PAD, -PAD).scaleSelf(1 / s));
+    return pat;
+  } catch {
+    return base;
+  }
+}
+
 export default function HexMesh({
   page,
   editable = false,
+  progressRef,
 }: {
   page: PageConfig;
   editable?: boolean;
+  /** A swipe pozíciója (törtszám slide-ban). Ha nincs, a vászon áll. */
+  progressRef?: React.RefObject<number>;
 }) {
+  const slides = Math.max(1, page.slides ?? 1);
+  const DESIGN_W = SLIDE_W * slides;
+  const DESIGN_H = SLIDE_H;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const meshRef = useRef<Mesh | null>(null);
-  const transformRef = useRef<Transform>({ scale: 1, offX: 0, offY: 0 });
+  const transformRef = useRef<StageTransform>({
+    scale: 1,
+    offX: 0,
+    offY: 0,
+    slideW: SLIDE_W,
+  });
   const selectedRef = useRef<Set<number>>(new Set());
   const [selected, setSelected] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
@@ -140,7 +184,13 @@ export default function HexMesh({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const overlay = page.overlay ?? "#0b0b0b";
+    const overlayFill = buildOverlayFill(
+      ctx,
+      page.overlay ?? "#0b0b0b",
+      page.overlayRects,
+      DESIGN_W,
+      DESIGN_H
+    );
 
     // A hálót fix tervezési méretben építjük; a csempeméret (R) állításakor
     // újraépítjük, de a rAF ciklus fut tovább (nem akad meg az animáció).
@@ -152,6 +202,8 @@ export default function HexMesh({
         seed: page.seed ?? 1,
         jitter: page.jitter,
         reveal: page.reveal,
+        // A rács is túlfut, hogy a függőleges ráhagyást kitöltse.
+        pad: Math.max(R * 1.5, BLEED_Y + R),
       });
       meshRef.current = mesh;
       // A feltárt (átlátszó) hatszögeket MINDIG betöltjük – a rajzoló ciklus
@@ -183,28 +235,19 @@ export default function HexMesh({
       canvas!.height = Math.round(cssH * dpr);
       canvas!.style.width = cssW + "px";
       canvas!.style.height = cssH + "px";
-      transformRef.current = coverTransform(cssW, cssH);
-    }
-
-    function applyTransform() {
-      const t = transformRef.current;
-      ctx!.setTransform(
-        dpr * t.scale,
-        0,
-        0,
-        dpr * t.scale,
-        dpr * t.offX,
-        dpr * t.offY
-      );
     }
 
     function drawImageCover() {
+      // A kép a TELJES vásznat fedi (nem slide-onként) – így swipe közben
+      // a kép és a rács egyetlen, összefüggő képként vándorol. Függőlegesen
+      // túlfut, hogy a nyúltabb telefonokon se legyen üres sáv.
+      const boxH = DESIGN_H + 2 * BLEED_Y;
       if (!imgReady || !img.width || !img.height) {
         ctx!.fillStyle = "#1a1a1a";
-        ctx!.fillRect(0, 0, DESIGN_W, DESIGN_H);
+        ctx!.fillRect(0, -BLEED_Y, DESIGN_W, boxH);
         return;
       }
-      const s = Math.max(DESIGN_W / img.width, DESIGN_H / img.height);
+      const s = Math.max(DESIGN_W / img.width, boxH / img.height);
       const w = img.width * s;
       const h = img.height * s;
       // Fekete-fehér maszk a képen: szürkeárnyalat + kis kontraszt.
@@ -239,9 +282,22 @@ export default function HexMesh({
         borderColorRef.current
       );
 
+      // A swipe pozíciója szerinti eltolás – ugyanaz a képlet, mint a DOM
+      // rétegeknél (SlideDeck), így a felirat és a szövegek együtt mozognak
+      // a képpel és a ráccsal.
+      const t = stageTransform(cssW, cssH, progressRef?.current ?? 0);
+      transformRef.current = t;
+
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, cssW, cssH);
-      applyTransform();
+      ctx!.setTransform(
+        dpr * t.scale,
+        0,
+        0,
+        dpr * t.scale,
+        dpr * t.offX,
+        dpr * t.offY
+      );
 
       // 1) Fekete-fehér háttérkép.
       drawImageCover();
@@ -249,11 +305,11 @@ export default function HexMesh({
       // 2) Maszk: minden kitöltve az overlay színnel, kivéve az átlátszó
       //    hatszögeket (even-odd "kilyukasztás").
       ctx!.beginPath();
-      ctx!.rect(-160, -160, DESIGN_W + 320, DESIGN_H + 320);
+      ctx!.rect(-PAD, -PAD, DESIGN_W + 2 * PAD, DESIGN_H + 2 * PAD);
       for (const h of m.hexes) {
         if (sel.has(h.index)) polygonPath(m, h.vertexIds, tSec);
       }
-      ctx!.fillStyle = overlay;
+      ctx!.fillStyle = overlayFill;
       ctx!.fill("evenodd");
 
       // 3) A háló élei – választott szín + átlátszatlanság.
@@ -291,12 +347,27 @@ export default function HexMesh({
       window.removeEventListener("orientationchange", resize);
       meshRef.current = null;
     };
-  }, [page, editable]);
+  }, [page, editable, progressRef, DESIGN_W, DESIGN_H]);
 
   // --- Szerkesztő: koppintás egy hatszögre -> ki/be kapcsolás -------------
+  // Csak akkor kapcsolunk, ha a mutató nem mozdult el – így a lapozó
+  // húzás nem jelöl ki véletlenül hatszögeket.
+  const tapStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      tapStartRef.current = { x: e.clientX, y: e.clientY };
+    },
+    []
+  );
+
   const handlePointer = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!editable) return;
+      const start = tapStartRef.current;
+      tapStartRef.current = null;
+      if (!start) return;
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
       const m = meshRef.current;
       if (!m) return;
       const rect = e.currentTarget.getBoundingClientRect();
@@ -347,7 +418,8 @@ export default function HexMesh({
       <canvas
         ref={canvasRef}
         className="hexmesh"
-        onPointerDown={editable ? handlePointer : undefined}
+        onPointerDown={editable ? handlePointerDown : undefined}
+        onPointerUp={editable ? handlePointer : undefined}
         style={{ touchAction: editable ? "none" : undefined }}
       />
       {editable && (

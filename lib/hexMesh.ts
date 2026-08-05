@@ -33,6 +33,9 @@ export type Mesh = {
 export type RevealSpec = {
   // Ha meg van adva, pontosan ezek a hatszög-indexek lesznek átlátszóak.
   indices?: number[];
+  // Kézzel elhelyezett feltárási foltok a vászon koordinátáiban – így a kép
+  // ott bukkan elő, ahol a terv szerint kell (és nem a szövegek alatt).
+  spots?: { x: number; y: number; r: number }[];
   // Egyébként "foltokban" nyílik ki a háló, hogy összefüggő képrészletek
   // látsszanak. A klaszterek száma és mérete a seed-ből determinisztikus.
   clusters?: number;
@@ -60,6 +63,8 @@ export function buildMesh(opts: {
   seed: number;
   jitter?: number; // szabálytalanság mértéke (a R hányada), 0..0.4
   reveal?: RevealSpec;
+  /** Mennyivel lógjon túl a rács a vászon szélein (px). Alap: 1.5·R. */
+  pad?: number;
 }): Mesh {
   const { width, height, R, seed } = opts;
   const jitter = opts.jitter ?? 0.26;
@@ -68,7 +73,7 @@ export function buildMesh(opts: {
   // Hegyes-tetejű (pointy-top) elrendezés.
   const hStep = Math.sqrt(3) * R; // vízszintes középtávolság
   const vStep = 1.5 * R; // függőleges sortávolság
-  const pad = R * 1.5; // lógjunk túl a szélen, hogy ne legyen üres perem
+  const pad = opts.pad ?? R * 1.5; // lógjunk túl a szélen, hogy ne legyen üres perem
 
   const vertexMap = new Map<string, number>();
   const base: Vec[] = [];
@@ -147,15 +152,19 @@ function applyReveal(
   // Foltos feltárás: néhány központ köré nyitunk ablakokat, így összefüggő
   // képrészletek bukkannak elő a szabályos "szórás" helyett.
   const rng = makeRng(seed ^ 0x9e3779b9);
-  const nClusters = spec.clusters ?? 3 + Math.floor(rng() * 3);
-  const centers: { x: number; y: number; r: number }[] = [];
-  const minDim = Math.min(dim.width, dim.height);
-  for (let i = 0; i < nClusters; i++) {
-    centers.push({
-      x: dim.width * (0.15 + rng() * 0.7),
-      y: dim.height * (0.15 + rng() * 0.7),
-      r: minDim * (0.12 + rng() * 0.16),
-    });
+  let centers: { x: number; y: number; r: number }[] = [];
+  if (spec.spots && spec.spots.length) {
+    centers = spec.spots;
+  } else {
+    const nClusters = spec.clusters ?? 3 + Math.floor(rng() * 3);
+    const minDim = Math.min(dim.width, dim.height);
+    for (let i = 0; i < nClusters; i++) {
+      centers.push({
+        x: dim.width * (0.15 + rng() * 0.7),
+        y: dim.height * (0.15 + rng() * 0.7),
+        r: minDim * (0.12 + rng() * 0.16),
+      });
+    }
   }
   for (const h of hexes) {
     for (const c of centers) {

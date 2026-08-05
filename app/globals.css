@@ -17,6 +17,7 @@ body {
   inset: 0;
   overflow: hidden;
   background: #000;
+  touch-action: none;
 }
 
 .hexmesh {
@@ -45,20 +46,60 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* --- Felső SVG réteg (minden fölött) --- */
-.mesh-logo {
+/* --- Színpad: a canvas-szal azonos transzformációjú DOM réteg ---
+   A gyerekei a tervezési (1080×1920-as slide) koordinátákban helyezkednek el,
+   a .mesh-stage transform-ját a SlideDeck állítja minden képkockán. */
+.mesh-stage {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 30;
-  width: auto;
-  height: 78vh;
-  height: 78dvh;
-  max-width: 86vw;
-  object-fit: contain;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  transform-origin: 0 0;
+  will-change: transform;
   pointer-events: none;
   user-select: none;
+}
+
+/* A slide-okon átívelő geometrikus felirat – egyetlen, összefüggő réteg. */
+.stage-title {
+  position: absolute;
+  display: block;
+}
+
+/* Slide-hoz kötött szövegblokk. */
+.stage-text {
+  position: absolute;
+  font-family: Arial, Helvetica, "Helvetica Neue", sans-serif;
+  font-weight: 400;
+  white-space: pre;
+  letter-spacing: 0;
+}
+
+/* --- Slide jelzők --- */
+.slide-dots {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+}
+
+.slide-dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.slide-dots button.active {
+  background: #fff;
+  transform: scale(1.25);
 }
 
 /* --- Szerkesztő panel --- */
@@ -67,7 +108,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 50;
   width: min(92vw, 620px);
   display: flex;
   flex-direction: column;

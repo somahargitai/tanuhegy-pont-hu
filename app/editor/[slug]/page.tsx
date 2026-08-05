@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import HexMesh from "@/components/HexMesh";
+import SlideDeck from "@/components/SlideDeck";
 import { getPage, pages } from "@/lib/pages";
 
 export function generateStaticParams() {
@@ -16,13 +16,11 @@ export default async function EditorPage({
   if (!page) notFound();
 
   return (
-    <div className="mesh-page">
-      <HexMesh page={page} editable />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="mesh-logo" src="/bazalt_text_1.svg" alt="" aria-hidden />
+    <>
+      <SlideDeck page={page} editable />
       <a className="mesh-back" href="/">
         ← galéria
       </a>
-    </div>
+    </>
   );
 }
